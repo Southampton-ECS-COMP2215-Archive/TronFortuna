@@ -11,7 +11,7 @@
 #define LED_OFF     PORTB &= ~_BV(PINB7) 
 #define LED_TOGGLE  PINB  |=  _BV(PINB7)
 
-volatile int score = 0;
+volatile uint16_t score = 0;
 
 typedef struct {
 	uint16_t x, y;
@@ -23,57 +23,99 @@ uint16_t line_count = 0;
 line tron_lines[3000];
 
 uint16_t lives = 3;
-volatile uint16_t players = 4;
 
-uint16_t player_x[4];
-uint16_t player_y[4];
-uint16_t player_lastturn_x[4];
-uint16_t player_lastturn_y[4];
-volatile uint16_t player_dir[4];
-volatile uint16_t player_collision[4];
-volatile uint16_t player_line[4];
-uint16_t player_color[4] = {RED, BLUE, GREEN, YELLOW};
+#define MAX_PLAYERS 6
+volatile uint16_t players = 5;
+
+#define STEP_SIZE 6
+uint16_t player_x[MAX_PLAYERS];
+uint16_t player_y[MAX_PLAYERS];
+uint16_t player_lastturn_x[MAX_PLAYERS];
+uint16_t player_lastturn_y[MAX_PLAYERS];
+volatile uint16_t player_dir[MAX_PLAYERS];
+volatile uint16_t player_collision[MAX_PLAYERS];
+volatile uint16_t player_line[MAX_PLAYERS];
+uint16_t player_color[MAX_PLAYERS] = {RED, BLUE, GREEN, YELLOW, HOT_PINK_1, ORANGE_1, PURPLE_1};
 
 typedef enum {Up,Down,Left,Right} direction;
+
+uint16_t is_game_over() {
+	
+	if(player_collision[0] == 1)
+		return 1;
+	
+	uint16_t dead_others = 0;
+	
+	int i;
+	for(i = 0; i < players; i++) {
+		if(player_collision[i] == 1)
+			dead_others++;
+	}
+	
+	if(dead_others < players - 1)
+		return 0;
+	else
+		return 1;
+}
 
 void set_default_pos() {
 	if(players == 2) {
 		player_x[0] = 160;
-		player_y[0] = 108;
+		player_y[0] = 120 - STEP_SIZE*2;
 		player_dir[0] = 0;
 		
 		player_x[1] = 160;
-		player_y[1] = 132;
+		player_y[1] = 120 + STEP_SIZE*2;
 		player_dir[1] = 2;
 		
 	} else if (players == 3) {
 		player_x[0] = 160;
-		player_y[0] = 108;
+		player_y[0] = 108 - STEP_SIZE*2;
 		player_dir[0] = 0;
 		
-		player_x[1] = 148;
-		player_y[1] = 132;
+		player_x[1] = 160 - STEP_SIZE*2;
+		player_y[1] = 120 + STEP_SIZE*2;
 		player_dir[1] = 3;
 		
-		player_x[2] = 172;
-		player_y[2] = 132;
+		player_x[2] = 160 + STEP_SIZE*2;
+		player_y[2] = 120 + STEP_SIZE*2;
 		player_dir[2] = 1;
 	} else if (players == 4) {
-		player_x[0] = 148;
-		player_y[0] = 108;
+		player_x[0] = 160 - STEP_SIZE*2;
+		player_y[0] = 120 - STEP_SIZE*2;
 		player_dir[0] = 0;
 		
-		player_x[1] = 172;
-		player_y[1] = 108;
+		player_x[1] = 160 + STEP_SIZE*2;
+		player_y[1] = 120 - STEP_SIZE*2;
 		player_dir[1] = 0;
 		
-		player_x[2] = 148;
-		player_y[2] = 132;
+		player_x[2] = 160 - STEP_SIZE*2;
+		player_y[2] = 120 + STEP_SIZE*2;
 		player_dir[2] = 2;
 		
-		player_x[3] = 172;
-		player_y[3] = 132;
+		player_x[3] = 160 + STEP_SIZE*2;
+		player_y[3] = 120 + STEP_SIZE*2;
 		player_dir[3] = 2;
+	} else if (players == 5) {
+		player_x[0] = 160;
+		player_y[0] = 120 - STEP_SIZE*4;
+		player_dir[0] = 0;
+		
+		player_x[1] = 160 - STEP_SIZE*2;
+		player_y[1] = 120 - STEP_SIZE*2;
+		player_dir[1] = 3;
+		
+		player_x[2] = 160 + STEP_SIZE*2;
+		player_y[2] = 120 - STEP_SIZE*2;
+		player_dir[2] = 1;
+		
+		player_x[3] = 160 - STEP_SIZE*2;
+		player_y[3] = 120 + STEP_SIZE*2;
+		player_dir[3] = 2;
+		
+		player_x[4] = 160 + STEP_SIZE*2;
+		player_y[4] = 120 + STEP_SIZE*2;
+		player_dir[4] = 2;
 	}
 	
 	int i;
@@ -177,7 +219,7 @@ void reset(){
 
 ISR(TIMER1_COMPA_vect)
 {
-	if(player_collision[0] == 1)
+	if(is_game_over())
 		return;
 		
 	if (center_pressed()){
@@ -219,19 +261,19 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(TIMER3_COMPA_vect)
 {
-	if(player_collision[0] == 0 && (player_collision[1] == 0 || player_collision[2] == 0 || player_collision[3] == 0)) {
+	if(!is_game_over()) {
 		
 		score++;
 		
 		// Move theplayer 1
 		if(player_dir[0] == 0)
-			player_y[0] -= 6;
+			player_y[0] -= STEP_SIZE;
 		else if (player_dir[0] == 1)
-			player_x[0] += 6;
+			player_x[0] += STEP_SIZE;
 		else if (player_dir[0] == 2)
-			player_y[0] += 6;
+			player_y[0] += STEP_SIZE;
 		else if (player_dir[0] == 3)
-			player_x[0] -= 6;
+			player_x[0] -= STEP_SIZE;
 
 		uint16_t len = 0;
 		if(player_dir[0] == 0) {
@@ -256,13 +298,13 @@ ISR(TIMER3_COMPA_vect)
 			uint16_t tempy = player_y[plr];
 			
 			if(player_dir[plr] == 0) {
-				tempy -= 6;
+				tempy -= STEP_SIZE;
 			} else if (player_dir[plr] == 1) {
-				tempx += 6;
+				tempx += STEP_SIZE;
 			} else if (player_dir[plr] == 2) {
-				tempy += 6;
+				tempy += STEP_SIZE;
 			} else if (player_dir[plr] == 3) {
-				tempx -= 6;
+				tempx -= STEP_SIZE;
 			}
 			
 			int i;
@@ -309,7 +351,13 @@ ISR(TIMER3_COMPA_vect)
 						
 			int new_dir = player_dir[plr];
 			
-			uint16_t decision = rand() % 10;
+			uint16_t decision;
+			
+			if(line_count < players * 5)
+				decision = rand() % 4;
+			else
+				decision = rand() % 10;
+			
 			// Lets try and choose a direction which wont hit a wall/line
 			if(will_collide == 1 || decision == 0) {
 				int ok_path = 0;
@@ -330,13 +378,13 @@ ISR(TIMER3_COMPA_vect)
 					tempy = player_y[plr];
 					
 					if(new_dir == 0) {
-						tempy -= 6;
+						tempy -= STEP_SIZE;
 					} else if (new_dir == 1) {
-						tempx += 6;
+						tempx += STEP_SIZE;
 					} else if (new_dir == 2) {
-						tempy += 6;
+						tempy += STEP_SIZE;
 					} else if (new_dir == 3) {
-						tempx -= 6;
+						tempx -= STEP_SIZE;
 					}
 					
 					ok_path = 1;
@@ -399,13 +447,13 @@ ISR(TIMER3_COMPA_vect)
 			}
 			
 			if(player_dir[plr] == 0)
-				player_y[plr] -= 6;
+				player_y[plr] -= STEP_SIZE;
 			else if (player_dir[plr] == 1)
-				player_x[plr] += 6;
+				player_x[plr] += STEP_SIZE;
 			else if (player_dir[plr] == 2)
-				player_y[plr] += 6;
+				player_y[plr] += STEP_SIZE;
 			else if (player_dir[plr] == 3)
-				player_x[plr] -= 6;
+				player_x[plr] -= STEP_SIZE;
 			
 			uint16_t len = 0;
 			if(player_dir[plr] == 0) {
@@ -506,7 +554,7 @@ int main()
 		OCR1A = 65535;
 		LED_OFF;
 		sei();
-		while(player_collision[0] == 0 && (player_collision[1] == 0 || player_collision[2] == 0 || player_collision[3] == 0));
+		while(!is_game_over());
 		cli();
 		LED_ON;
 		if(player_collision[0] == 1) {
