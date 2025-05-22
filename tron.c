@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h> 
 
-#define LED_ON      PORTB |=  _BV(PINB7)
+// #define LED_ON      PORTB |=  _BV(PINB7)
+#define LED_ON      PORTB &=  ~_BV(PINB7)
 #define LED_OFF     PORTB &= ~_BV(PINB7) 
 #define LED_TOGGLE  PINB  |=  _BV(PINB7)
 
@@ -20,7 +21,7 @@ typedef struct {
 
 uint16_t hightscore = 0;
 uint16_t line_count = 0;
-line tron_lines[3000];
+line tron_lines[800];
 
 uint16_t lives = 3;
 
@@ -35,7 +36,7 @@ uint16_t player_lastturn_y[MAX_PLAYERS];
 volatile uint16_t player_dir[MAX_PLAYERS];
 volatile uint16_t player_collision[MAX_PLAYERS];
 volatile uint16_t player_line[MAX_PLAYERS];
-uint16_t player_color[MAX_PLAYERS] = {RED, BLUE, GREEN, YELLOW, HOT_PINK_1, ORANGE_1, PURPLE_1};
+uint16_t player_color[MAX_PLAYERS] = {RED, BLUE, GREEN, YELLOW, HOT_PINK_1, ORANGE_1/* , PURPLE_1 */};
 
 typedef enum {Up,Down,Left,Right} direction;
 
@@ -46,7 +47,7 @@ uint16_t is_game_over() {
 	
 	uint16_t dead_others = 0;
 	
-	int i;
+	unsigned int i;
 	for(i = 0; i < players; i++) {
 		if(player_collision[i] == 1)
 			dead_others++;
@@ -118,7 +119,7 @@ void set_default_pos() {
 		player_dir[4] = 2;
 	}
 	
-	int i;
+	unsigned int i;
 	for(i = 0; i < players; i++) {
 		player_lastturn_x[i] = player_x[i];
 		player_lastturn_y[i] = player_y[i];
@@ -153,7 +154,7 @@ void redraw(){
 	
 
 		
-		int plr, i;
+		unsigned int plr, i;
 		if(player_collision[0] != 1) {
 			for(plr = 0; plr < players; plr++) {
 				if(player_collision[plr] == 1)
@@ -287,7 +288,7 @@ ISR(TIMER3_COMPA_vect)
 		}
 		tron_lines[player_line[0]].len = len;
 			
-		int plr;
+		unsigned int plr;
 		for(plr = 1; plr < players; plr++) {
 			if(player_collision[plr] == 1)
 				continue;
@@ -307,7 +308,7 @@ ISR(TIMER3_COMPA_vect)
 				tempx -= STEP_SIZE;
 			}
 			
-			int i;
+			unsigned int i;
 
 			for(i = 0; i < line_count; i++) {
 				if(tron_lines[i].dir == 0) {
@@ -349,7 +350,7 @@ ISR(TIMER3_COMPA_vect)
 			if(player_dir[plr] == 3 && tempx <= 20)
 				will_collide = 1;
 						
-			int new_dir = player_dir[plr];
+			unsigned int new_dir = player_dir[plr];
 			
 			uint16_t decision;
 			
